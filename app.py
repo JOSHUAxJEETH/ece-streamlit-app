@@ -10,7 +10,7 @@ st.set_page_config(page_title="ECE Dashboard", layout="wide")
 st.sidebar.title("📡 ECE Portal")
 menu = st.sidebar.radio("Navigation", ["Home", "Live Data"])
 
-# Home
+# Home Page
 if menu == "Home":
     st.title("📡 ECE Department")
     st.write("Sensor Monitoring Dashboard")
@@ -38,10 +38,15 @@ elif menu == "Live Data":
 
             st.success("Graph Generated!")
 
-            # Plot Graph
+            # ✅ SHOW TABLE
+            st.subheader("📋 Data Table")
+            st.dataframe(df)
+
+            # 📈 Plot Graph
             fig, ax = plt.subplots()
             ax.plot(temp_values, label="Temperature")
             ax.plot(volt_values, label="Voltage")
+            ax.set_title("Sensor Data Graph")
             ax.legend()
 
             st.pyplot(fig)
@@ -49,7 +54,7 @@ elif menu == "Live Data":
             # Save graph image
             fig.savefig("graph.png")
 
-            # Create PDF
+            # 📄 Create PDF
             doc = SimpleDocTemplate("report.pdf")
             styles = getSampleStyleSheet()
 
@@ -67,11 +72,16 @@ elif menu == "Live Data":
 
             doc.build(content)
 
-            # Download buttons
+            # 📥 Download PDF
             with open("report.pdf", "rb") as f:
                 st.download_button("📥 Download PDF", f, file_name="report.pdf")
 
-            st.download_button("📥 Download Data CSV", df.to_csv(index=False), file_name="data.csv")
+            # 📥 Download CSV
+            st.download_button(
+                "📥 Download Data CSV",
+                df.to_csv(index=False),
+                file_name="data.csv"
+            )
 
         except:
             st.error("Please enter valid numbers separated by commas.")
