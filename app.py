@@ -1,60 +1,77 @@
 import streamlit as st
-import random
 import pandas as pd
+import matplotlib.pyplot as plt
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image
+from reportlab.lib.styles import getSampleStyleSheet
 
-st.set_page_config(page_title="ECE Department", layout="wide")
+st.set_page_config(page_title="ECE Dashboard", layout="wide")
 
 # Sidebar
 st.sidebar.title("📡 ECE Portal")
-menu = st.sidebar.radio("Navigation", ["Home", "About", "Labs", "Projects", "Live Data", "Contact"])
+menu = st.sidebar.radio("Navigation", ["Home", "Live Data"])
 
 # Home
 if menu == "Home":
-    st.title("📡 Electronics & Communication Engineering")
-    st.write("Welcome to the ECE Department Web Portal")
+    st.title("📡 ECE Department")
+    st.write("Sensor Monitoring Dashboard")
 
-# About
-elif menu == "About":
-    st.title("🏫 About Department")
-    st.write("""
-    - Communication Systems
-    - Embedded Systems
-    - VLSI Design
-    - Signal Processing
-    """)
-
-# Labs
-elif menu == "Labs":
-    st.title("🔬 Laboratories")
-    st.write("• Analog Lab")
-    st.write("• Digital Lab")
-
-# Projects
-elif menu == "Projects":
-    st.title("📁 Projects")
-    st.write("• IoT Monitoring System")
-
-# ✅ Correct Live Data Section
+# Live Data Page
 elif menu == "Live Data":
-    st.title("📊 Sensor Dashboard")
+    st.title("📊 Enter Sensor Values")
 
-    data = {
-        "Time": list(range(1, 21)),
-        "Temperature": [random.randint(25, 40) for _ in range(20)],
-        "Voltage": [round(random.uniform(3.0, 5.0), 2) for _ in range(20)]
-    }
+    st.subheader("Enter Temperature Values (comma separated)")
+    temp_input = st.text_input("Example: 25,30,28,35")
 
-    df = pd.DataFrame(data)
+    st.subheader("Enter Voltage Values (comma separated)")
+    volt_input = st.text_input("Example: 3.2,4.1,3.8,4.5")
 
-    st.subheader("Temperature Graph")
-    st.line_chart(df["Temperature"])
+    if st.button("Generate Graph"):
 
-    st.subheader("Voltage Graph")
-    st.line_chart(df["Voltage"])
+        try:
+            temp_values = [float(x) for x in temp_input.split(",")]
+            volt_values = [float(x) for x in volt_input.split(",")]
 
-    st.dataframe(df)
+            df = pd.DataFrame({
+                "Temperature": temp_values,
+                "Voltage": volt_values
+            })
 
-# Contact
-elif menu == "Contact":
-    st.title("📞 Contact")
-    st.write("Email: ece@example.com")
+            st.success("Graph Generated!")
+
+            # Plot Graph
+            fig, ax = plt.subplots()
+            ax.plot(temp_values, label="Temperature")
+            ax.plot(volt_values, label="Voltage")
+            ax.legend()
+
+            st.pyplot(fig)
+
+            # Save graph image
+            fig.savefig("graph.png")
+
+            # Create PDF
+            doc = SimpleDocTemplate("report.pdf")
+            styles = getSampleStyleSheet()
+
+            content = []
+            content.append(Paragraph("ECE Sensor Report", styles["Title"]))
+            content.append(Spacer(1, 20))
+
+            content.append(Paragraph(f"Temperature: {temp_values}", styles["Normal"]))
+            content.append(Spacer(1, 10))
+
+            content.append(Paragraph(f"Voltage: {volt_values}", styles["Normal"]))
+            content.append(Spacer(1, 20))
+
+            content.append(Image("graph.png", width=400, height=200))
+
+            doc.build(content)
+
+            # Download buttons
+            with open("report.pdf", "rb") as f:
+                st.download_button("📥 Download PDF", f, file_name="report.pdf")
+
+            st.download_button("📥 Download Data CSV", df.to_csv(index=False), file_name="data.csv")
+
+        except:
+            st.error("Please enter valid numbers separated by commas.")
