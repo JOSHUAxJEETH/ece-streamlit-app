@@ -1,65 +1,106 @@
 import streamlit as st
 import pandas as pd
-from fpdf import FPDF
+import numpy as np
 
 # ---------------- PAGE CONFIG ----------------
 st.set_page_config(page_title="Smart Power Quality Analyzer", layout="wide")
 
 # ---------------- TITLE ----------------
 st.title("⚡ Smart Power Quality Analyzer")
-st.subheader("Interactive Learning & Analysis System")
+st.subheader("Advanced Interactive Learning & Analysis System")
 
 # ---------------- SESSION ----------------
-if "registered" not in st.session_state:
-    st.session_state.registered = False
-
 if "data" not in st.session_state:
-    st.session_state.data = []
-
-# ---------------- REGISTRATION ----------------
-if not st.session_state.registered:
-    st.header("📝 Registration")
-
-    name = st.text_input("Enter Name")
-    reg = st.text_input("Register Number")
-
-    if st.button("Register"):
-        if name and reg:
-            st.session_state.registered = True
-            st.session_state.name = name
-            st.session_state.reg = reg
-            st.success("Registered Successfully ✅")
-        else:
-            st.error("Fill all details")
-
-    st.stop()
+    st.session_state.data = pd.DataFrame(columns=[
+        "Voltage", "Current", "Power", "Frequency", "Power Factor"
+    ])
 
 # ---------------- SIDEBAR ----------------
 menu = st.sidebar.selectbox(
     "Navigation",
-    ["Home", "Theory", "Principle", "Analysis", "Report", "Quiz", "Feedback"]
+    ["Dashboard", "Theory", "Principle", "Report", "Quiz", "Feedback"]
 )
 
-# ---------------- HOME ----------------
-if menu == "Home":
-    st.header("🎯 Aim")
+# ---------------- DASHBOARD ----------------
+if menu == "Dashboard":
+    st.header("📊 Real-Time Power Dashboard")
 
-    st.write("""
-    To analyze power quality parameters such as voltage and current
-    and understand their effect on electrical systems.
-    """)
+    col1, col2, col3 = st.columns(3)
+
+    with col1:
+        voltage = st.slider("Voltage (V)", 0, 500, 230)
+
+    with col2:
+        current = st.slider("Current (A)", 0, 50, 10)
+
+    with col3:
+        frequency = st.slider("Frequency (Hz)", 45, 65, 50)
+
+    power_factor = st.slider("Power Factor", 0.0, 1.0, 0.9)
+
+    # AUTO CALCULATE
+    power = voltage * current * power_factor
+
+    # AUTO ADD BUTTON
+    if st.button("➕ Add Reading"):
+        new_row = {
+            "Voltage": voltage,
+            "Current": current,
+            "Power": power,
+            "Frequency": frequency,
+            "Power Factor": power_factor
+        }
+        st.session_state.data = pd.concat(
+            [st.session_state.data, pd.DataFrame([new_row])],
+            ignore_index=True
+        )
+
+    # ---------------- METRICS (GAUGE STYLE) ----------------
+    st.subheader("⚡ Live Metrics")
+
+    m1, m2, m3 = st.columns(3)
+
+    with m1:
+        st.metric("Voltage", f"{voltage} V")
+
+    with m2:
+        st.metric("Current", f"{current} A")
+
+    with m3:
+        st.metric("Power", f"{power:.2f} W")
+
+    # ---------------- ALERT SYSTEM ----------------
+    if voltage > 260 or power > 2000:
+        st.error("🔴 Danger: Overload Condition!")
+    elif voltage > 240:
+        st.warning("🟠 Warning: High Voltage")
+    else:
+        st.success("🟢 System Stable")
+
+    # ---------------- TABLE ----------------
+    st.subheader("📋 Data Table")
+    st.dataframe(st.session_state.data)
+
+    # ---------------- GRAPH ----------------
+    st.subheader("📈 Power Trend Graph")
+
+    if not st.session_state.data.empty:
+        st.line_chart(st.session_state.data["Power"])
 
 # ---------------- THEORY ----------------
 elif menu == "Theory":
     st.header("📘 Theory")
 
     st.write("""
-    Power quality refers to the stability and consistency of voltage and current.
-    
-    Poor power quality can cause:
-    - Equipment damage
-    - Power losses
-    - System inefficiency
+    Power Quality refers to maintaining voltage, current, frequency within limits.
+
+    Key parameters:
+    - Voltage stability
+    - Current flow
+    - Frequency
+    - Power factor
+
+    Poor power quality can damage equipment.
     """)
 
 # ---------------- PRINCIPLE ----------------
@@ -67,53 +108,22 @@ elif menu == "Principle":
     st.header("⚙️ Working Principle")
 
     st.write("""
-    1. User inputs voltage and current  
-    2. System calculates power (P = V × I)  
-    3. Graph shows variation  
-    4. Helps analyze system performance  
+    1. Measure voltage, current, frequency  
+    2. Calculate power using formula  
+    3. Detect abnormal conditions  
+    4. Alert user  
     """)
-
-# ---------------- ANALYSIS ----------------
-elif menu == "Analysis":
-    st.header("📈 Power Analysis")
-
-    col1, col2 = st.columns(2)
-
-    with col1:
-        voltage = st.number_input("Enter Voltage (V)", 0, 500)
-        current = st.number_input("Enter Current (A)", 0, 50)
-
-        if st.button("Add Data"):
-            power = voltage * current
-            st.session_state.data.append(power)
-
-    with col2:
-        st.write("Power = Voltage × Current")
-
-    if st.session_state.data:
-        df = pd.DataFrame(st.session_state.data, columns=["Power"])
-        st.line_chart(df)
 
 # ---------------- REPORT ----------------
 elif menu == "Report":
-    st.header("📄 Download Report")
+    st.header("📄 Data Report")
 
-    if st.session_state.data:
-
-        pdf = FPDF()
-        pdf.add_page()
-
-        pdf.set_font("Arial", size=12)
-        pdf.cell(200, 10, txt="Power Quality Report", ln=True)
-
-        for i, val in enumerate(st.session_state.data):
-            pdf.cell(200, 10, txt=f"Reading {i+1}: {val} W", ln=True)
-
-        pdf.output("report.pdf")
-
-        with open("report.pdf", "rb") as f:
-            st.download_button("Download PDF", f, "report.pdf")
-
+    if not st.session_state.data.empty:
+        st.download_button(
+            "Download CSV",
+            st.session_state.data.to_csv(index=False),
+            "report.csv"
+        )
     else:
         st.warning("No data available")
 
@@ -123,10 +133,10 @@ elif menu == "Quiz":
 
     score = 0
 
-    q1 = st.radio("Power formula?", ["V + I", "V × I", "I / V"])
+    q1 = st.radio("Power formula?", ["V + I", "V × I × PF", "I / V"])
 
     if st.button("Submit"):
-        if q1 == "V × I":
+        if q1 == "V × I × PF":
             score += 1
 
         st.success(f"Score: {score}/1")
@@ -138,4 +148,4 @@ elif menu == "Feedback":
     fb = st.text_area("Enter feedback")
 
     if st.button("Submit"):
-        st.success("Thanks for feedback!")
+        st.success("Feedback submitted!")
