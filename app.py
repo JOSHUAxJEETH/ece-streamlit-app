@@ -1,8 +1,36 @@
 import streamlit as st
 import pandas as pd
+from fpdf import FPDF
 
 # ---------------- PAGE CONFIG ----------------
 st.set_page_config(page_title="Smart Power Quality Analyzer", layout="wide")
+
+# ---------------- SESSION ----------------
+if "registered" not in st.session_state:
+    st.session_state.registered = False
+
+if "data" not in st.session_state:
+    st.session_state.data = pd.DataFrame(columns=[
+        "Voltage", "Current", "Frequency", "Power Factor", "Power"
+    ])
+
+# ---------------- REGISTRATION ----------------
+if not st.session_state.registered:
+    st.title("📝 Registration")
+
+    name = st.text_input("Enter Name")
+    reg = st.text_input("Register Number")
+
+    if st.button("Register"):
+        if name and reg:
+            st.session_state.registered = True
+            st.session_state.name = name
+            st.session_state.reg = reg
+            st.success("Registered Successfully ✅")
+        else:
+            st.error("Please fill all details")
+
+    st.stop()
 
 # ---------------- SIDEBAR ----------------
 menu = st.sidebar.selectbox(
@@ -10,27 +38,26 @@ menu = st.sidebar.selectbox(
     ["Dashboard", "Theory", "Principle", "Analysis", "Report", "Quiz", "Feedback"]
 )
 
-# ---------------- SESSION ----------------
-if "data" not in st.session_state:
-    st.session_state.data = pd.DataFrame(columns=[
-        "Voltage", "Current", "Frequency", "Power Factor", "Power"
-    ])
-
 # ---------------- DASHBOARD ----------------
 if menu == "Dashboard":
     st.title("⚡ Smart Power Quality Analyzer")
     st.subheader("Interactive Learning & Analysis System")
 
-    st.markdown("""
+    st.markdown(f"""
+    👤 **User:** {st.session_state.name}  
+    🆔 **Register No:** {st.session_state.reg}
+
+    ---
+
     ### 🎯 Welcome
 
-    This system helps users:
+    This system helps you:
     - Learn power quality concepts 📘  
     - Input electrical parameters ⚡  
     - Analyze system performance 📊  
-    - Generate reports 📄  
+    - Generate PDF report 📄  
 
-    👉 Use the sidebar to explore all features.
+    👉 Use the sidebar to navigate.
     """)
 
 # ---------------- THEORY ----------------
@@ -40,12 +67,12 @@ elif menu == "Theory":
     st.write("""
     Power quality refers to maintaining stable voltage, current, and frequency.
 
-    Poor power quality may lead to:
+    Poor power quality leads to:
     - Equipment damage  
-    - Power loss  
+    - Energy loss  
     - Reduced efficiency  
 
-    Key Parameters:
+    Key parameters:
     - Voltage (V)
     - Current (A)
     - Frequency (Hz)
@@ -57,12 +84,10 @@ elif menu == "Principle":
     st.title("⚙️ Working Principle")
 
     st.write("""
-    1. User enters electrical parameters  
-    2. System calculates power using:  
-       Power = Voltage × Current × Power Factor  
-    3. Data is stored  
-    4. Graph shows variation  
-    5. Alerts detect abnormal conditions  
+    1. User inputs electrical parameters  
+    2. System calculates power  
+    3. Data stored in table  
+    4. Graph visualizes variation  
     """)
 
 # ---------------- ANALYSIS ----------------
@@ -106,24 +131,30 @@ elif menu == "Analysis":
         st.subheader("📈 Power Graph")
         st.line_chart(st.session_state.data["Power"])
 
-    # ALERT
-    if power > 2000:
-        st.error("🔴 Overload Condition")
-    elif power > 1000:
-        st.warning("🟠 High Load")
-    else:
-        st.success("🟢 Normal Condition")
-
-# ---------------- REPORT ----------------
+# ---------------- REPORT (PDF) ----------------
 elif menu == "Report":
-    st.title("📄 Report Download")
+    st.title("📄 Download PDF Report")
 
     if not st.session_state.data.empty:
-        st.download_button(
-            "Download CSV",
-            st.session_state.data.to_csv(index=False),
-            "power_report.csv"
-        )
+
+        pdf = FPDF()
+        pdf.add_page()
+        pdf.set_font("Arial", size=12)
+
+        pdf.cell(200, 10, txt="Power Quality Report", ln=True)
+        pdf.cell(200, 10, txt=f"Name: {st.session_state.name}", ln=True)
+        pdf.cell(200, 10, txt=f"Register No: {st.session_state.reg}", ln=True)
+        pdf.ln(5)
+
+        for i, row in st.session_state.data.iterrows():
+            text = f"{i+1}. V={row['Voltage']} I={row['Current']} F={row['Frequency']} PF={row['Power Factor']} P={row['Power']}"
+            pdf.cell(200, 10, txt=text, ln=True)
+
+        pdf.output("report.pdf")
+
+        with open("report.pdf", "rb") as f:
+            st.download_button("Download PDF", f, "Power_Report.pdf")
+
     else:
         st.warning("No data available")
 
