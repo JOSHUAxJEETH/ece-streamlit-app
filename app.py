@@ -1,135 +1,135 @@
 import streamlit as st
 import pandas as pd
-import numpy as np
 
 # ---------------- PAGE CONFIG ----------------
 st.set_page_config(page_title="Smart Power Quality Analyzer", layout="wide")
 
-# ---------------- TITLE ----------------
-st.title("⚡ Smart Power Quality Analyzer")
-st.subheader("Advanced Interactive Learning & Analysis System")
+# ---------------- SIDEBAR ----------------
+menu = st.sidebar.selectbox(
+    "Navigation",
+    ["Dashboard", "Theory", "Principle", "Analysis", "Report", "Quiz", "Feedback"]
+)
 
 # ---------------- SESSION ----------------
 if "data" not in st.session_state:
     st.session_state.data = pd.DataFrame(columns=[
-        "Voltage", "Current", "Power", "Frequency", "Power Factor"
+        "Voltage", "Current", "Frequency", "Power Factor", "Power"
     ])
-
-# ---------------- SIDEBAR ----------------
-menu = st.sidebar.selectbox(
-    "Navigation",
-    ["Dashboard", "Theory", "Principle", "Report", "Quiz", "Feedback"]
-)
 
 # ---------------- DASHBOARD ----------------
 if menu == "Dashboard":
-    st.header("📊 Real-Time Power Dashboard")
+    st.title("⚡ Smart Power Quality Analyzer")
+    st.subheader("Interactive Learning & Analysis System")
 
-    col1, col2, col3 = st.columns(3)
+    st.markdown("""
+    ### 🎯 Welcome
+
+    This system helps users:
+    - Learn power quality concepts 📘  
+    - Input electrical parameters ⚡  
+    - Analyze system performance 📊  
+    - Generate reports 📄  
+
+    👉 Use the sidebar to explore all features.
+    """)
+
+# ---------------- THEORY ----------------
+elif menu == "Theory":
+    st.title("📘 Theory")
+
+    st.write("""
+    Power quality refers to maintaining stable voltage, current, and frequency.
+
+    Poor power quality may lead to:
+    - Equipment damage  
+    - Power loss  
+    - Reduced efficiency  
+
+    Key Parameters:
+    - Voltage (V)
+    - Current (A)
+    - Frequency (Hz)
+    - Power Factor
+    """)
+
+# ---------------- PRINCIPLE ----------------
+elif menu == "Principle":
+    st.title("⚙️ Working Principle")
+
+    st.write("""
+    1. User enters electrical parameters  
+    2. System calculates power using:  
+       Power = Voltage × Current × Power Factor  
+    3. Data is stored  
+    4. Graph shows variation  
+    5. Alerts detect abnormal conditions  
+    """)
+
+# ---------------- ANALYSIS ----------------
+elif menu == "Analysis":
+    st.title("📊 Power Analysis")
+
+    st.subheader("Enter Values")
+
+    col1, col2 = st.columns(2)
 
     with col1:
-        voltage = st.slider("Voltage (V)", 0, 500, 230)
+        voltage = st.number_input("Voltage (V)", 0, 500)
+        current = st.number_input("Current (A)", 0, 50)
 
     with col2:
-        current = st.slider("Current (A)", 0, 50, 10)
+        frequency = st.number_input("Frequency (Hz)", 0, 100)
+        pf = st.number_input("Power Factor", 0.0, 1.0)
 
-    with col3:
-        frequency = st.slider("Frequency (Hz)", 45, 65, 50)
+    power = voltage * current * pf
 
-    power_factor = st.slider("Power Factor", 0.0, 1.0, 0.9)
-
-    # AUTO CALCULATE
-    power = voltage * current * power_factor
-
-    # AUTO ADD BUTTON
-    if st.button("➕ Add Reading"):
+    if st.button("Add Row"):
         new_row = {
             "Voltage": voltage,
             "Current": current,
-            "Power": power,
             "Frequency": frequency,
-            "Power Factor": power_factor
+            "Power Factor": pf,
+            "Power": power
         }
+
         st.session_state.data = pd.concat(
             [st.session_state.data, pd.DataFrame([new_row])],
             ignore_index=True
         )
 
-    # ---------------- METRICS (GAUGE STYLE) ----------------
-    st.subheader("⚡ Live Metrics")
-
-    m1, m2, m3 = st.columns(3)
-
-    with m1:
-        st.metric("Voltage", f"{voltage} V")
-
-    with m2:
-        st.metric("Current", f"{current} A")
-
-    with m3:
-        st.metric("Power", f"{power:.2f} W")
-
-    # ---------------- ALERT SYSTEM ----------------
-    if voltage > 260 or power > 2000:
-        st.error("🔴 Danger: Overload Condition!")
-    elif voltage > 240:
-        st.warning("🟠 Warning: High Voltage")
-    else:
-        st.success("🟢 System Stable")
-
-    # ---------------- TABLE ----------------
+    # TABLE
     st.subheader("📋 Data Table")
     st.dataframe(st.session_state.data)
 
-    # ---------------- GRAPH ----------------
-    st.subheader("📈 Power Trend Graph")
-
+    # GRAPH
     if not st.session_state.data.empty:
+        st.subheader("📈 Power Graph")
         st.line_chart(st.session_state.data["Power"])
 
-# ---------------- THEORY ----------------
-elif menu == "Theory":
-    st.header("📘 Theory")
-
-    st.write("""
-    Power Quality refers to maintaining voltage, current, frequency within limits.
-
-    Key parameters:
-    - Voltage stability
-    - Current flow
-    - Frequency
-    - Power factor
-
-    Poor power quality can damage equipment.
-    """)
-
-# ---------------- PRINCIPLE ----------------
-elif menu == "Principle":
-    st.header("⚙️ Working Principle")
-
-    st.write("""
-    1. Measure voltage, current, frequency  
-    2. Calculate power using formula  
-    3. Detect abnormal conditions  
-    4. Alert user  
-    """)
+    # ALERT
+    if power > 2000:
+        st.error("🔴 Overload Condition")
+    elif power > 1000:
+        st.warning("🟠 High Load")
+    else:
+        st.success("🟢 Normal Condition")
 
 # ---------------- REPORT ----------------
 elif menu == "Report":
-    st.header("📄 Data Report")
+    st.title("📄 Report Download")
 
     if not st.session_state.data.empty:
         st.download_button(
             "Download CSV",
             st.session_state.data.to_csv(index=False),
-            "report.csv"
+            "power_report.csv"
         )
     else:
         st.warning("No data available")
 
 # ---------------- QUIZ ----------------
 elif menu == "Quiz":
-    st.header("🧠 Quiz")
+    st.title("🧠 Quiz")
 
     score = 0
 
@@ -143,9 +143,9 @@ elif menu == "Quiz":
 
 # ---------------- FEEDBACK ----------------
 elif menu == "Feedback":
-    st.header("📝 Feedback")
+    st.title("📝 Feedback")
 
     fb = st.text_area("Enter feedback")
 
     if st.button("Submit"):
-        st.success("Feedback submitted!")
+        st.success("Feedback submitted successfully!")
